@@ -1,16 +1,16 @@
+from ClassifierConfiguration import ClassifierConfiguration
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
-import nltk
 
+import nltk
 import functools
 import json
 import codecs
 import sys
 
-from ClassifierConfiguration import ClassifierConfiguration
-
 class Classifier:
+    classifier = None
     word_features = None
     config = None
 
@@ -40,7 +40,7 @@ class Classifier:
         words = list(map(lambda entry: entry[0], wordlists))
         return functools.reduce(lambda x, y: x + y, words)
 
-    def get_frequency_distribution(self, wordlist):
+    def get_words_in_freq_sequence(self, wordlist):
         freq_dist = nltk.FreqDist(wordlist)
         bag_of_words = freq_dist.most_common()
         return list(map(lambda e: e[0], bag_of_words))
@@ -64,6 +64,8 @@ class Classifier:
 
         return tokens
 
+    # Returns dict of words that were encountered both in train set
+    # and target document with True, otherwise with False value
     def extract_features(self, document):
         document_words = set(document)
         features = {}
@@ -71,19 +73,36 @@ class Classifier:
             features[word] = word in document_words
         return features
 
-    def main(self):
-        positive = self.prepare_wordlists(self.load_data(self.config.POS_FILENAME), self.config.POSITIVE_CLASS)
-        negative = self.prepare_wordlists(self.load_data(self.config.NEG_FILENAME), self.config.NEGATIVE_CLASS)
-        all = positive + negative
+    def train(self, documents):
+        self.word_features = self.get_words_in_freq_sequence(self.get_words(documents))
+        training_set = nltk.classify.apply_features(self.extract_features, documents)
+        self.classifier = nltk.NaiveBayesClassifier.train(training_set)
 
-        all_words = self.get_words(all)
-        self.word_features = self.get_frequency_distribution(all_words)
-        training_set = nltk.classify.apply_features(self.extract_features, all)
-        print(training_set)
-        classifier = nltk.NaiveBayesClassifier.train(training_set)
-        print(classifier.show_most_informative_features())
-        # print(self.all)
-        # print(self.get_words(self.all))
+        print(self.classifier.show_most_informative_features())
+        return None
+
+    def test(self, sentiment):
+        test = self.load_data(self.config.TEST_FILENAME)[sentiment];
+
+        for document in test:
+            wordlist = self.prepare_wordlist(document)
+            features = self.extract_features(wordlist)
+            result = self.classifier.classify(features)
+
+            preview_text_len = self.config.PREVIEW_TEXT_LENGTH
+            preview_text = document if len(document) < preview_text_len else document[:preview_text_len] + "..."
+            print("%s -> %s (expected %s)\n" % (preview_text, result, sentiment))
+
+        return None
+
+    def main(self):
+        pos_documents = self.prepare_wordlists(self.load_data(self.config.POS_FILENAME), self.config.POSITIVE_CLASS)
+        neg_documents = self.prepare_wordlists(self.load_data(self.config.NEG_FILENAME), self.config.NEGATIVE_CLASS)
+        all_documents = pos_documents + neg_documents
+
+        self.train(all_documents)
+        self.test(self.config.POSITIVE_CLASS)
+        self.test(self.config.NEGATIVE_CLASS)
 
         sys.exit(0)
 

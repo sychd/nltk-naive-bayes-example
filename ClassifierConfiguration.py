@@ -8,3 +8,5 @@ class ClassifierConfiguration:
     LANGUAGE = 'russian'
     POSITIVE_CLASS = 'positive'
     NEGATIVE_CLASS = 'negative'
+
+    PREVIEW_TEXT_LENGTH = 30
