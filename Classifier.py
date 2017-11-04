@@ -78,7 +78,8 @@ class Classifier:
         training_set = nltk.classify.apply_features(self.extract_features, documents)
         self.classifier = nltk.NaiveBayesClassifier.train(training_set)
 
-        print(self.classifier.show_most_informative_features())
+        self.classifier.show_most_informative_features()
+        print("\n")
         return None
 
     def test(self, sentiment):
@@ -91,7 +92,7 @@ class Classifier:
 
             preview_text_len = self.config.PREVIEW_TEXT_LENGTH
             preview_text = document if len(document) < preview_text_len else document[:preview_text_len] + "..."
-            print("%s -> %s (expected %s)\n" % (preview_text, result, sentiment))
+            print("%s -> %s (%r)" % (preview_text, result, result == sentiment))
 
         return None
 
